@@ -3,70 +3,56 @@ import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/exampl
 import { Rhino3dmLoader } from 'https://cdn.jsdelivr.net/npm/three@0.126.0/examples/jsm/loaders/3DMLoader.js'
 import rhino3dm from 'https://cdn.jsdelivr.net/npm/rhino3dm@0.15.0-beta/rhino3dm.module.js'
 
-const definitionName = 'Assignment_ziqi cui.gh'
 
-const loader = new Rhino3dmLoader()
-loader.setLibraryPath('https://cdn.jsdelivr.net/npm/rhino3dm@0.15.0-beta/')
 
-let doc
+ 
 
-const url = definitionName
-const res = await fetch(url)
-const buffer = await res.arrayBuffer()
-const arr = new Uint8Array(buffer)
-doc = rhino3dm.File3dm.fromByteArray(arr)
+// Set up the Three.js scene, camera, and renderer
+const scene = new THREE.Scene()
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+camera.position.z = 5
+const renderer = new THREE.WebGLRenderer({ antialias: true })
+renderer.setSize(window.innerWidth, window.innerHeight)
+document.body.appendChild(renderer.domElement)
 
-init()
-loadRhino3dm()
+// Add orbit controls to the camera
+const controls = new OrbitControls(camera, renderer.domElement)
 
-function loadRhino3dm() {
-    const buffer = new Uint8Array(doc.toByteArray()).buffer
-    loader.parse(buffer, function (object) {
+// Load the .gh file and add it to the scene
+const loader = new THREE.FileLoader()
+loader.load(
+  '/Assignment_ziqi cui.gh',
+  (data) => {
+    // Parse the .gh file data
+    const parser = new DOMParser()
+    const xml = parser.parseFromString(data, 'application/xml')
+    const ghData = xml.getElementsByTagName('GrasshopperDocument')[0]
 
-        scene.add(object)
-        // hide spinner
-        document.getElementById('loader').style.display = 'none'
+    // Create a Three.js Object3D to hold the geometry
+    const geometry = new THREE.BufferGeometry()
+    const material = new THREE.MeshNormalMaterial()
+    const mesh = new THREE.Mesh(geometry, material)
+    scene.add(mesh)
 
-    })
-}
+    // Extract the geometry data from the .gh file and add it to the Three.js mesh
+    const meshData = ghData.getElementsByTagName('Mesh')[0]
+    const positions = meshData.getElementsByTagName('P')[0].textContent.split(' ').map(Number)
+    const normals = meshData.getElementsByTagName('N')[0].textContent.split(' ').map(Number)
+    const indices = meshData.getElementsByTagName('F')[0].textContent.split(' ').map(Number)
+    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3))
+    geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals), 3))
+    geometry.setIndex(indices)
+  },
+  undefined,
+  (error) => {
+    console.error(error)
+  }
+)
 
-// BOILERPLATE //
-let scene, camera, renderer, controls
-
-function init() {
-
-    // create a scene and a camera
-    scene = new THREE.Scene()
-    scene.background = new THREE.Color(1, 1, 1)
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-    camera.position.z = - 30
-
-    // create the renderer and add it to the html
-    renderer = new THREE.WebGLRenderer({ antialias: true })
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    document.body.appendChild(renderer.domElement)
-
-    // add orbit controls
-    controls = new OrbitControls(camera, renderer.domElement)
-
-    // listen to the resize events
-    window.addEventListener('resize', onWindowResize, false)
-
-    animate()
-}
-
+// Render the scene
 function animate() {
-    requestAnimationFrame(animate)
-
-    // update controls
-    controls.update()
-
-    // render the scene
-    renderer.render(scene, camera)
+  requestAnimationFrame(animate)
+  controls.update()
+  renderer.render(scene, camera)
 }
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight
-    camera.updateProjectionMatrix()
-    renderer.setSize(window.innerWidth, window.innerHeight)
-}
+animate()
