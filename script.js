@@ -21,7 +21,7 @@ const controls = new OrbitControls(camera, renderer.domElement)
 // Load the .gh file and add it to the scene
 const loader = new THREE.FileLoader()
 loader.load(
-  'Assignment_ziqi cui.gh',
+  'https://etterlivet.github.io/test/Assignment_ziqi cui.gh',
   (data) => {
     // Parse the .gh file data
     const parser = new DOMParser()
